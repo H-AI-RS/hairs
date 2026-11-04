@@ -1,0 +1,199 @@
+name: HAIRS NuGet Packages
+
+# Prepares and publishes HAIRS NuGet packages (Hairs and Hairs.Cli).
+# Scheme: hairs-0.1.0-preview.x
+#
+# Triggers:
+#   - Tag push: 'hairs-0.1.0-preview.*' or 'hairs-v*' -> packs and publishes to NuGet.
+#   - Workflow dispatch: manual trigger with input for preview number x or version override,
+#     and dry_run toggle.
+#   - Pull request & push to main: pack & test verification on changes to hairs/** (dry run).
+
+on:
+  push:
+    tags:
+      - 'hairs-0.1.0-preview.*'
+      - 'hairs-v*'
+      - 'hairs-*'
+    branches:
+      - main
+    paths:
+      - 'hairs/**'
+      - '.github/workflows/hairs-nuget.yml'
+  pull_request:
+    paths:
+      - 'hairs/**'
+      - '.github/workflows/hairs-nuget.yml'
+  workflow_dispatch:
+    inputs:
+      preview_number:
+        description: 'Preview number x in scheme hairs-0.1.0-preview.x (e.g. 1, 2, ...)'
+        required: false
+        default: '1'
+      version_override:
+        description: 'Exact package version (e.g. 0.1.0-preview.1). Overrides preview_number if specified.'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run (pack & test only, do not publish to NuGet feed)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: hairs-nuget-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  NUGET_OUTPUT_DIR: ${{ github.workspace }}/artifacts/nupkg
+
+jobs:
+  pack:
+    name: Build, Test & Pack
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      package_version: ${{ steps.resolve-version.outputs.package_version }}
+      should_publish: ${{ steps.resolve-version.outputs.should_publish }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve Package Version
+        id: resolve-version
+        shell: pwsh
+        run: |
+          $ref = "${{ github.ref }}"
+          $tag = "${{ github.ref_name }}"
+          $override = "${{ github.event.inputs.version_override }}"
+          $previewInput = "${{ github.event.inputs.preview_number }}"
+          $dryRun = "${{ github.event.inputs.dry_run }}"
+          $eventName = "${{ github.event_name }}"
+
+          # Scheme: hairs-0.1.0-preview.x -> version 0.1.0-preview.x
+          if ($override) {
+              $version = $override
+          } elseif ($eventName -eq 'push' -and $ref -like 'refs/tags/hairs-*') {
+              if ($tag -match '^hairs-(.+)$') {
+                  $version = $matches[1]
+              } else {
+                  $version = $tag
+              }
+          } elseif ($previewInput) {
+              $version = "0.1.0-preview.$previewInput"
+          } else {
+              $version = "0.1.0-preview.0-ci.${{ github.run_number }}"
+          }
+
+          $isTag = ($eventName -eq 'push' -and $ref -like 'refs/tags/hairs-*')
+          $isManualPublish = ($eventName -eq 'workflow_dispatch' -and $dryRun -ne 'true')
+          $shouldPublish = ($isTag -or $isManualPublish) ? "true" : "false"
+
+          Write-Host "Trigger Event: $eventName"
+          Write-Host "Resolved Package Version: $version"
+          Write-Host "Should Publish: $shouldPublish"
+
+          "PACKAGE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "package_version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "should_publish=$shouldPublish" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build HAIRS Solution
+        shell: pwsh
+        run: dotnet build hairs/Hairs.slnx -c Release
+
+      - name: Run Unit Tests
+        shell: pwsh
+        run: dotnet test hairs/Hairs.slnx -c Release --no-build
+
+      - name: Pack NuGet Packages
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:NUGET_OUTPUT_DIR | Out-Null
+          dotnet pack hairs/Hairs.slnx -c Release --no-build `
+            -p:PackageVersion=$env:PACKAGE_VERSION `
+            -o $env:NUGET_OUTPUT_DIR
+
+      - name: Verify Package Artifacts
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem -Path "$env:NUGET_OUTPUT_DIR/*.nupkg")
+          if ($packages.Count -eq 0) {
+            Write-Error "No .nupkg files were generated in $env:NUGET_OUTPUT_DIR"
+            exit 1
+          }
+          Write-Host "Generated $($packages.Count) package(s):"
+          $packages | ForEach-Object {
+            Write-Host " - $($_.Name) ($([math]::Round($_.Length / 1KB, 2)) KB)"
+          }
+
+      - name: Upload Packages Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: hairs-nuget-packages
+          path: |
+            ${{ env.NUGET_OUTPUT_DIR }}/*.nupkg
+            ${{ env.NUGET_OUTPUT_DIR }}/*.snupkg
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish to NuGet
+    needs: pack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    if: needs.pack.outputs.should_publish == 'true'
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: hairs-nuget-packages
+          path: nupkg
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Push to NuGet.org
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if (-not $env:NUGET_API_KEY) {
+            Write-Warning "NUGET_API_KEY secret is not set. Skipping push to NuGet.org."
+          } else {
+            Write-Host "Publishing to NuGet.org..."
+            dotnet nuget push "nupkg/*.nupkg" `
+              --source "https://api.nuget.org/v3/index.json" `
+              --api-key "$env:NUGET_API_KEY" `
+              --skip-duplicate
+          }
+
+      - name: Push to GitHub Packages
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if (-not $env:GITHUB_TOKEN) {
+            Write-Warning "GITHUB_TOKEN is not available. Skipping push to GitHub Packages."
+          } else {
+            Write-Host "Publishing to GitHub Packages (owner: ${{ github.repository_owner }})..."
+            dotnet nuget push "nupkg/*.nupkg" `
+              --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" `
+              --api-key "$env:GITHUB_TOKEN" `
+              --skip-duplicate
+          }
