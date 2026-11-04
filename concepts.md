@@ -30,6 +30,28 @@ Its goal is not to guarantee that software is free of vulnerabilities, but to ma
 
 ---
 
+## Supply Chain Integrity Review
+
+Software supply-chain integrity extends verification beyond application source code into the automation, build recipes, and dependencies that produce software releases.
+
+HAIRS categorizes and audits four distinct supply chain asset classes:
+
+| Asset Type | Target Assets | Vulnerability Vector (Historical Precedent) |
+|---|---|---|
+| **`BuildPipeline`** | `.github/workflows/*.yml`, `pack.ps1`, `build.sh`, `Dockerfile` | Malicious workflow actions, build-script injections (*SolarWinds, xz Utils*) |
+| **`PackageManifest`** | `Directory.Packages.props`, `Directory.Build.props`, `*.csproj`, `packages.lock.json` | Dependency confusion, malicious version bumps, compromised maintainership (*event-stream*) |
+| **`Configuration`** | `hairs.config.json`, `.gitattributes`, `nuget.config` | Silently disabling review gates, weakening verification rules |
+| **`ThirdPartyCode`** | Vendored code (`vendor/*`, `third_party/*`), `Origin=ThirdParty` | Backdoored external modules, unvetted imported libraries |
+
+### Content-Addressed Supply Chain Tracking
+
+All supply chain assets are tracked with the same content-addressed normalized SHA-256 (`sha256-nlf:`) mechanism as source code:
+- Stored as human review records under `.hairs-review/<path>.review.json`.
+- Any edit to a CI/CD workflow, build script, package version, or tool configuration immediately alters the content hash, transitioning the asset from `Current` to `Stale`.
+- Under the `hairs supply-chain --fail-on-stale` gate, unreviewed or modified supply chain files immediately block the release pipeline.
+
+---
+
 ## Content Identity and Fingerprinting
 
 ### File Content Hash (`sha256-nlf:`)

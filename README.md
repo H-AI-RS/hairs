@@ -43,13 +43,14 @@ hairs/
 │   ├── Hairs/                  # Core shared library (Hairs.dll)
 │   │   ├── Storage/            # IHairsStorage, FileSystemHairsStorage, HairsPath
 │   │   ├── Review/             # FileReview, ReviewStore, ReviewCoverage, ReviewContentHash
+│   │   ├── SupplyChain/        # SupplyChainAuditor, SupplyChainAsset, SupplyChainAuditReport
 │   │   ├── Assurance/          # AssuranceUnit, AssuranceAnnotation, AssuranceGenerator, AssuranceChecks
 │   │   └── Language/CSharp/    # CSharpAssuranceScanner, CSharpAssuranceFileScanner (Roslyn)
 │   └── Hairs.Cli/              # CLI executable & dotnet tool (hairs)
-│       ├── Program.cs          # Entry point (coverage, check, list, assurance)
+│       ├── Program.cs          # Entry point (coverage, check, list, supply-chain, assurance)
 │       └── Assurance/          # Discovery, insertion, pruning, generation, gate commands
 ├── tests/
-│   └── Hairs.Tests/            # Comprehensive unit test suite (375 tests, xUnit v3)
+│   └── Hairs.Tests/            # Comprehensive unit test suite (392 tests, xUnit v3)
 └── *.md                        # In-depth architectural & workflow documentation
 ```
 
@@ -65,7 +66,7 @@ Build the entire solution:
 dotnet build Hairs.slnx -c Release
 ```
 
-Run all 375 unit tests:
+Run all 392 unit tests:
 
 ```powershell
 dotnet run --project tests/Hairs.Tests -c Release
@@ -86,7 +87,20 @@ The CLI executable is `Hairs.Cli.exe` (tool command name `hairs`).
   hairs check --root . --changed changed-files.txt --fail-on-stale
   ```
 
-#### 2. Code Assurance Gate
+#### 2. Supply Chain Integrity Review
+
+Audit repository assets critical to supply chain security (CI/CD workflows, build scripts, CPM package definitions, tool configurations, and third-party code):
+
+- **Audit Supply Chain Assets:**
+  ```powershell
+  hairs supply-chain --root . --markdown supply-chain.md --json supply-chain.json
+  ```
+- **Enforce Supply Chain Review Gate in CI (Fail on stale or unreviewed assets):**
+  ```powershell
+  hairs supply-chain --root . --fail-on-stale --minimum 100
+  ```
+
+#### 3. Code Assurance Gate
 
 - **Inspect Current Status:**
   ```powershell

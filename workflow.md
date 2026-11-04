@@ -35,7 +35,31 @@ Options:
 
 ---
 
-## 2. Declaration Code Assurance Workflow
+## 2. Supply Chain Integrity Review Workflow
+
+The supply chain engine audits all files that define how the software is built, packaged, and provisioned with dependencies.
+
+### Auditing Supply Chain Assets
+
+```powershell
+# Generate Supply Chain markdown audit report and JSON inventory
+hairs supply-chain --root . --markdown supply-chain.md --json supply-chain.json
+
+# Enforce supply chain review gate in CI
+hairs supply-chain --root . --fail-on-stale --minimum 100
+```
+
+### Reviewing Supply Chain Changes
+
+When a dependency is updated in `Directory.Packages.props`, or a workflow step is modified in `.github/workflows/`:
+1. `hairs supply-chain` reports the asset as `Stale` (or `Unreviewed`).
+2. An engineer inspects the PR/diff and verifies the dependency hash and workflow integrity.
+3. The review is recorded under `.hairs-review/<path>.review.json` and committed with the change.
+4. CI verifies that all supply chain assets are `Verified` and fresh before allowing a release.
+
+---
+
+## 3. Declaration Code Assurance Workflow
 
 Declaration assurance provides unit-level confidence tracking directly inside source code.
 

@@ -66,7 +66,18 @@ Content-addressed verification and note tracking over entire source files.
 | Note Relocation | [NoteAnchoring.cs](src/Hairs/NoteAnchoring.cs) | Tracks notes across code edits (`Anchored`, `Moved`, `Ambiguous`, `Orphaned`). |
 | Coverage Computation | [ReviewCoverage.cs](src/Hairs/ReviewCoverage.cs) | Computes reviewed, stale, and unreviewed metrics across a tree. |
 
-### 3. Declaration Code Assurance Engine (`Hairs.Assurance`)
+### 3. Supply Chain Integrity Engine (`Hairs.SupplyChain`)
+
+Audits repository assets critical to software supply chain security and release integrity.
+
+| Type | Path | Purpose |
+|---|---|---|
+| `SupplyChainAssetType` | [SupplyChainAssetType.cs](src/Hairs/SupplyChain/SupplyChainAssetType.cs) | Categorization (`BuildPipeline`, `PackageManifest`, `Configuration`, `ThirdPartyCode`). |
+| `SupplyChainAsset` | [SupplyChainAsset.cs](src/Hairs/SupplyChain/SupplyChainAsset.cs) | Immutable record representing a supply chain asset and its review freshness. |
+| `SupplyChainAuditReport` | [SupplyChainAuditReport.cs](src/Hairs/SupplyChain/SupplyChainAuditReport.cs) | Audit results with totals, compliance checks, and Markdown/JSON reporting. |
+| `SupplyChainAuditor` | [SupplyChainAuditor.cs](src/Hairs/SupplyChain/SupplyChainAuditor.cs) | Discovers and audits workflows, build scripts, CPM manifests, and configs. |
+
+### 4. Declaration Code Assurance Engine (`Hairs.Assurance`)
 
 In-source annotation parsing, state machines, rubric rules, and artifact generation.
 
@@ -85,7 +96,7 @@ In-source annotation parsing, state machines, rubric rules, and artifact generat
 | Assessment Insertion | [AssuranceInsertion.cs](src/Hairs/Assurance/AssuranceInsertion.cs) | Idempotent insertion of machine blocks above AST declarations. |
 | Rubric Pruning | [AssurancePruning.cs](src/Hairs/Assurance/AssurancePruning.cs) | Removes obsolete annotations and below-High criteria safely. |
 
-### 4. Roslyn C# Language Scanner (`Hairs.Language.CSharp`)
+### 5. Roslyn C# Language Scanner (`Hairs.Language.CSharp`)
 
 High-performance semantic and AST parsing powered by `Microsoft.CodeAnalysis.CSharp`.
 
@@ -95,13 +106,14 @@ High-performance semantic and AST parsing powered by `Microsoft.CodeAnalysis.CSh
 | File Scanner | [CSharpAssuranceFileScanner.cs](src/Hairs/Language/CSharp/CSharpAssuranceFileScanner.cs) | Maps tokens, leading trivia, doc comments, and attributes per file. |
 | Component Scanner | [CSharpComponentAssuranceScanner.cs](src/Hairs/Language/CSharp/CSharpComponentAssuranceScanner.cs) | Resolves the nearest `hairs.config.json` for per-project scanning rules. |
 
-### 5. Standalone CLI Executable (`Hairs.Cli`)
+### 6. Standalone CLI Executable (`Hairs.Cli`)
 
 The command-line interface packed as `hairs`.
 
 | Command / Component | Source | Purpose |
 |---|---|---|
-| Entry Point & Router | [Program.cs](src/Hairs.Cli/Program.cs) | Top-level dispatcher for `coverage`, `check`, `list`, `assurance`. |
+| Entry Point & Router | [Program.cs](src/Hairs.Cli/Program.cs) | Top-level dispatcher for `coverage`, `check`, `list`, `supply-chain`, `assurance`. |
+| Supply Chain Audit | [Program.cs](src/Hairs.Cli/Program.cs) | Implements `hairs supply-chain` audit and CI gate. |
 | Source Inventory | [SourceInventory.cs](src/Hairs.Cli/SourceInventory.cs) | Discovers project sources and collapses nested checkouts. |
 | Coverage Reporting | [ReviewReport.cs](src/Hairs.Cli/ReviewReport.cs) | Renders file review coverage in Markdown and JSON. |
 | Project Discovery | [ComponentSources.cs](src/Hairs.Cli/Assurance/ComponentSources.cs) | Evaluates MSBuild project files and compiles item sets without MSBuild exe. |
@@ -115,11 +127,12 @@ The command-line interface packed as `hairs`.
 
 ## Test Suite (`tests/Hairs.Tests/`)
 
-The test suite contains 375 tests running on xUnit v3 In-Process Runner:
+The test suite contains 392 tests running on xUnit v3 In-Process Runner:
 
 - `ReviewRecordTests`: Decision recording, timestamps, content hash verification.
 - `ReviewStoreTests`: Serialization round-tripping, file deletion.
 - `ReviewCoverageTests`: Coverage arithmetic and bucket calculations.
+- `SupplyChainTests`: Asset classification, audit reports, staleness detection, and Markdown/JSON serialization.
 - `NoteAnchoringTests`: Relocation of notes across multiline code modifications.
 - `AssuranceScannerTests`: Roslyn AST unit extraction and fingerprint reproducibility.
 - `AssuranceFileScannerTests`: Line-level mapping of trivia and declarations.
