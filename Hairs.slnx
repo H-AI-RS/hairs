@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/Hairs.Cli/Hairs.Cli.csproj" />
+  <Project Path="src/Hairs/Hairs.csproj" />
+  <Project Path="tests/Hairs.Tests/Hairs.Tests.csproj" />
+</Solution>

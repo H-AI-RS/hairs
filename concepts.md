@@ -1,0 +1,83 @@
+# HAIRS Concepts and Trust Model
+
+HAIRS operates on a foundational invariant:
+
+> **Automation may assess, measure, calculate fingerprints, and invalidate stale records; automation may NEVER invent or forge a human decision.**
+
+---
+
+## The Three Layers of Evidence
+
+1. **Component Attestation (`HUMAN_REVIEW.md`):** High-level attestation by a release engineer or team lead stating the scope and conditions for a release.
+2. **File Review (`.hairs-review/<path>.review.json`):** Content-addressed decision over an entire source file based on normalized full-text SHA-256 (`sha256-nlf:`).
+3. **Declaration Code Assurance (In-source `// Hairs-*`):** Fine-grained unit-level assessment and human review attached directly to code symbols (classes, methods, properties).
+
+---
+
+## Content Identity and Fingerprinting
+
+### File Content Hash (`sha256-nlf:`)
+
+File reviews compute SHA-256 over normalized content:
+- Strips any leading Byte Order Mark (BOM).
+- Normalizes all line endings (`\r\n`, `\r`) to standard Unix line feeds (`\n`).
+- Retains all other whitespace, comments, and character tokens verbatim.
+
+If a file is edited and later reverted to its exact previous normalized content, HAIRS recognizes that the review is current again without human intervention.
+
+### Unit Structural Fingerprints
+
+Code declarations use 6-character uppercase hexadecimal fingerprints computed by Roslyn AST parsing:
+- Hashes meaningful language tokens, identifiers, operators, types, and bodies.
+- Token-based: Re-formatting whitespace or adding benign line wraps does not alter the fingerprint.
+- Directives (`#if`, `#else`, `#endif`) and conditional blocks are tracked.
+- Acts as a tamper and staleness detector: any logic change in the declaration produces a different fingerprint, immediately invalidating any prior human signature on that unit.
+
+---
+
+## Assurance State Machine
+
+Each code unit exists in exactly one state, evaluated in strict guard order:
+
+| State | Condition | Blocks Release? |
+|---|---|---|
+| `EXEMPT` | Unit is exempt by scanner predicate or explicit declaration | No |
+| `NEW` | Declaration carries no assurance annotation block | **Yes** |
+| `STALE` | Human line explicitly records `STALE` | **Yes** |
+| `AI_ASSESSED` | Machine block is present, but fingerprint is unsealed (`TBF`) | **Yes** |
+| `HUMAN_PENDING` | Machine fingerprint is sealed, but human line is `PENDING` | **Yes** |
+| `HUMAN_APPROVED_PENDING_FINGERPRINT` | Human alias signed, but not yet sealed by generator | **Yes** |
+| `VERIFIED` | Sealed human fingerprint exactly matches current AST fingerprint | **No** |
+| `STALE` | Sealed human fingerprint differs from current AST fingerprint | **Yes** |
+
+---
+
+## In-Source Annotation Syntax
+
+```csharp
+// Hairs-AI:           Origin=AI; IP=Low; Security=High; Resources=2; Fingerprint=4A3BFD
+// Hairs-Falsified-If: an unauthorized user can read protected memory
+// Hairs-Human:        EB; Fingerprint=4A3BFD
+```
+
+### Rubric Fields
+
+- **Origin:** Provenance of the code (`AI`, `Original`, `Specification`, `Derived`, `Ported`, `ThirdParty`).
+- **IP:** Intellectual property risk assessment (`None`, `Low`, `Medium`, `High`, `Unknown`).
+- **Security:** Security impact of defects (`None`, `Low`, `Medium`, `High`, `Critical`).
+- **Resources:** CPU and memory cost rating under adversary load (integer `0` to `10`).
+- **CS / CL (Optional):** Conceptual Stability (`0` to `10`) and Change Likelihood (`0` to `10`).
+- **Spec (Optional):** Architectural Decision Record reference (e.g. `ADR-0004`).
+- **Falsified-If:** High and Critical security units **require** an observable falsification criterion sentence explaining under what condition the implementation would be proven flawed.
+
+---
+
+## Review Notes & Relocation
+
+Review notes represent structured questions, concerns, todos, and observations attached to code:
+- **Anchoring:** Notes anchor to exact code fragments rather than fragile line numbers.
+- **Relocation States:**
+  - `Anchored`: Text found at exact recorded offset.
+  - `Moved`: Text moved elsewhere in the file uniquely.
+  - `Ambiguous`: Text appears multiple times in new positions.
+  - `Orphaned`: Text deleted or completely rewritten.

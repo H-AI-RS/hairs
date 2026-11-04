@@ -1,0 +1,24 @@
+{
+  "$comment": "Per-declaration assurance for HAIRS.",
+  "schema": 1,
+  "component": "Hairs",
+  "projects": [
+    "src/Hairs/Hairs.csproj",
+    "src/Hairs.Cli/Hairs.Cli.csproj"
+  ],
+  "exclude": [],
+  "exemptionPredicate": "owning-component",
+  "spdx": {
+    "copyright": [ "2026 HAIRS contributors" ],
+    "license": "Apache-2.0"
+  },
+  "spdxOverrides": [],
+  "artefacts": {
+    "report": "CODE-ASSURANCE.md",
+    "humanReview": "HUMAN_REVIEW.md",
+    "manifest": "hairs.manifest.json"
+  },
+  "forbidDirectives": false,
+  "forgeryVocabulary": "narrow",
+  "regenerateCommand": "hairs assurance generate --root ."
+}

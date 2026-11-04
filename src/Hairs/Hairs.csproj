@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Hairs</RootNamespace>
+    <AssemblyName>Hairs</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <PackageId>Hairs</PackageId>
+    <Authors>HAIRS contributors</Authors>
+    <Description>Human AI Review System (HAIRS): shared library for code review, file freshness, and declaration-level assurance.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Hairs.Cli" />
+    <InternalsVisibleTo Include="Hairs.Tests" />
+  </ItemGroup>
+
+</Project>
