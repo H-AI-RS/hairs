@@ -6,6 +6,22 @@ HAIRS operates on a foundational invariant:
 
 ---
 
+## Why HAIRS?
+
+Modern software development increasingly relies on automation, AI-assisted coding, and contributions from distributed teams.
+
+At the same time, incidents such as the xz Utils backdoor (2024), the event-stream compromise (2018), and the SolarWinds supply-chain attack (2020) have demonstrated how difficult it can be to maintain trust across source code, dependencies, build processes, and software releases.
+
+These incidents were not caused by AI-generated code. However, they highlight broader challenges involving code provenance, review accountability, and release integrity.
+
+HAIRS (Human–AI Review System) is designed to address these challenges through traceable, source-bound human reviews, risk classification, and automated release validation.
+
+Its goal is not to guarantee that software is free of vulnerabilities, but to make review coverage measurable, changes traceable, and release decisions accountable.
+
+> **AI can accelerate development. Human accountability must remain verifiable.**
+
+---
+
 ## The Three Layers of Evidence
 
 1. **Component Attestation (`HUMAN_REVIEW.md`):** High-level attestation by a release engineer or team lead stating the scope and conditions for a release.
