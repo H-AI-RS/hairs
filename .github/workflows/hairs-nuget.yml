@@ -4,32 +4,16 @@ name: HAIRS NuGet Packages
 # Scheme: hairs-0.1.0-preview.x
 #
 # Triggers:
-#   - Tag push: 'hairs-0.1.0-preview.*' or 'hairs-v*' -> packs and publishes to NuGet.
 #   - Workflow dispatch: manual trigger with input for preview number x or version override,
 #     and dry_run toggle.
-#   - Pull request & push to main: pack & test verification on changes to hairs/** (dry run).
 
 on:
-  push:
-    tags:
-      - 'hairs-0.1.0-preview.*'
-      - 'hairs-v*'
-      - 'hairs-*'
-    branches:
-      - main
-    paths:
-      - 'hairs/**'
-      - '.github/workflows/hairs-nuget.yml'
-  pull_request:
-    paths:
-      - 'hairs/**'
-      - '.github/workflows/hairs-nuget.yml'
   workflow_dispatch:
     inputs:
       preview_number:
-        description: 'Preview number x in scheme hairs-0.1.0-preview.x (e.g. 1, 2, ...)'
+        description: 'Preview iteration number (leave as "auto" to detect and increment from NuGet.org, or enter e.g. 1, 2, ...)'
         required: false
-        default: '1'
+        default: 'auto'
       version_override:
         description: 'Exact package version (e.g. 0.1.0-preview.1). Overrides preview_number if specified.'
         required: false
@@ -46,7 +30,7 @@ permissions:
 
 concurrency:
   group: hairs-nuget-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 env:
   DOTNET_NOLOGO: 'true'
@@ -77,33 +61,46 @@ jobs:
         id: resolve-version
         shell: pwsh
         run: |
-          $ref = "${{ github.ref }}"
-          $tag = "${{ github.ref_name }}"
           $override = "${{ github.event.inputs.version_override }}"
           $previewInput = "${{ github.event.inputs.preview_number }}"
           $dryRun = "${{ github.event.inputs.dry_run }}"
-          $eventName = "${{ github.event_name }}"
+
+          $baseVersion = "0.1.0"
 
           # Scheme: hairs-0.1.0-preview.x -> version 0.1.0-preview.x
           if ($override) {
               $version = $override
-          } elseif ($eventName -eq 'push' -and $ref -like 'refs/tags/hairs-*') {
-              if ($tag -match '^hairs-(.+)$') {
-                  $version = $matches[1]
-              } else {
-                  $version = $tag
-              }
-          } elseif ($previewInput) {
-              $version = "0.1.0-preview.$previewInput"
+              Write-Host "Using explicit version override: $version"
+          } elseif ($previewInput -and $previewInput -ne 'auto') {
+              $version = "$baseVersion-preview.$previewInput"
+              Write-Host "Using specified preview number: $version"
           } else {
-              $version = "0.1.0-preview.0-ci.${{ github.run_number }}"
+              Write-Host "Auto-detecting next preview number from NuGet.org for package 'Hairs'..."
+              $maxNumber = 0
+              try {
+                  $feedUri = "https://api.nuget.org/v3-flatcontainer/hairs/index.json"
+                  $feed = Invoke-RestMethod -Uri $feedUri -ErrorAction Stop
+                  $existing = $feed.versions | ForEach-Object {
+                      if ($_ -match "^$([regex]::Escape($baseVersion))-preview\.(\d+)$") {
+                          [int]$matches[1]
+                      }
+                  }
+                  if ($existing) {
+                      $maxNumber = ($existing | Measure-Object -Maximum).Maximum
+                  }
+                  Write-Host "Found highest published preview on NuGet.org: preview.$maxNumber"
+              } catch {
+                  Write-Host "Package 'Hairs' not yet on NuGet.org or feed unreachable; starting from preview.0"
+              }
+
+              $nextPreview = $maxNumber + 1
+              $version = "$baseVersion-preview.$nextPreview"
+              Write-Host "Auto-incremented to next preview version: $version"
           }
 
-          $isTag = ($eventName -eq 'push' -and $ref -like 'refs/tags/hairs-*')
-          $isManualPublish = ($eventName -eq 'workflow_dispatch' -and $dryRun -ne 'true')
-          $shouldPublish = ($isTag -or $isManualPublish) ? "true" : "false"
+          $shouldPublish = ($dryRun -eq 'true') ? "false" : "true"
 
-          Write-Host "Trigger Event: $eventName"
+          Write-Host "Trigger Event: ${{ github.event_name }}"
           Write-Host "Resolved Package Version: $version"
           Write-Host "Should Publish: $shouldPublish"
 
@@ -113,17 +110,17 @@ jobs:
 
       - name: Build HAIRS Solution
         shell: pwsh
-        run: dotnet build hairs/Hairs.slnx -c Release
+        run: dotnet build Hairs.slnx -c Release
 
       - name: Run Unit Tests
         shell: pwsh
-        run: dotnet test hairs/Hairs.slnx -c Release --no-build
+        run: dotnet run --project tests/Hairs.Tests -c Release --no-build
 
       - name: Pack NuGet Packages
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path $env:NUGET_OUTPUT_DIR | Out-Null
-          dotnet pack hairs/Hairs.slnx -c Release --no-build `
+          dotnet pack Hairs.slnx -c Release --no-build `
             -p:PackageVersion=$env:PACKAGE_VERSION `
             -o $env:NUGET_OUTPUT_DIR
 

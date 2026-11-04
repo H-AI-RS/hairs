@@ -109,18 +109,12 @@ HAIRS publishes two packages:
 - **`Hairs`**: Core shared library for code review, file hashing, and declaration assurance.
 - **`Hairs.Cli`**: Standalone .NET CLI tool (`hairs`), packable as a global/local dotnet tool.
 
-### Versioning Scheme: `hairs-0.1.0-preview.x`
+### Packaging & Release
 
-The GitHub Actions workflow [`.github/workflows/hairs-nuget.yml`](../.github/workflows/hairs-nuget.yml) automates building, testing, packing, and publishing.
+The GitHub Actions workflow [`.github/workflows/hairs-nuget.yml`](.github/workflows/hairs-nuget.yml) automates building, testing, packing, and publishing.
 
-- **Trigger by Git Tag:**
-  Pushing a tag such as `hairs-0.1.0-preview.1` or `hairs-0.1.0-preview.2` resolves package version `0.1.0-preview.x` and publishes to NuGet.org and GitHub Packages.
-  ```bash
-  git tag hairs-0.1.0-preview.1
-  git push origin hairs-0.1.0-preview.1
-  ```
-- **Trigger by Manual Dispatch:**
-  Run the workflow manually via GitHub Actions UI / CLI, supplying the preview number `x` (e.g. `1`), an optional explicit version override, or a dry-run flag.
+- **Manual Trigger (`workflow_dispatch`):**
+  Run the workflow manually via GitHub Actions UI / CLI. The `preview_number` defaults to `auto`, which queries NuGet.org and auto-increments to the next preview number (e.g. from `preview.1` to `preview.2`). You can also specify an exact preview number, provide a `version_override`, or check `dry_run`.
 - **Local Packaging:**
   Run [`pack.ps1`](pack.ps1) locally:
   ```powershell

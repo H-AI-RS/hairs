@@ -176,20 +176,14 @@ hairs assurance check --root . --release
 
 ## 5. NuGet Package Publishing (GitHub Actions)
 
-The workflow [`.github/workflows/hairs-nuget.yml`](../.github/workflows/hairs-nuget.yml) automates packaging and releasing `Hairs` and `Hairs.Cli`.
-
-### Tag Scheme: `hairs-0.1.0-preview.x`
-
-When pushing a tag such as `hairs-0.1.0-preview.1`:
-1. The workflow triggers automatically.
-2. It extracts the package version `0.1.0-preview.1`.
-3. It builds and executes the complete unit test suite (376 tests).
-4. It packs `Hairs` and `Hairs.Cli` packages.
-5. It archives the `.nupkg` artifacts and publishes them to NuGet.org (using `NUGET_API_KEY`) and GitHub Packages (using `GITHUB_TOKEN`).
+The workflow [`.github/workflows/hairs-nuget.yml`](.github/workflows/hairs-nuget.yml) automates packaging and releasing `Hairs` and `Hairs.Cli`.
 
 ### Manual Dispatch (`workflow_dispatch`)
 
-In the GitHub Actions tab, select **HAIRS NuGet Packages** and provide:
-- `preview_number`: e.g. `2` (creates version `0.1.0-preview.2`)
-- `version_override`: optional custom SemVer string
-- `dry_run`: `true` to test building and packing without uploading to the feed.
+The workflow is triggered manually on demand:
+1. In the GitHub Actions tab, select **HAIRS NuGet Packages**.
+2. Supply parameters as needed:
+   - `preview_number`: defaults to `auto`, which automatically queries NuGet.org for the highest existing `0.1.0-preview.<N>` version and increments it to `N + 1` (e.g. if `preview.1` is on NuGet, it automatically resolves to `preview.2`). You can also enter an explicit number.
+   - `version_override`: optional custom SemVer string (overrides `preview_number`).
+   - `dry_run`: `true` to test building and packing without publishing.
+3. The workflow builds `Hairs.slnx`, executes all 375 tests, packs the NuGet packages, and publishes them to NuGet.org (using `NUGET_API_KEY`) and GitHub Packages (using `GITHUB_TOKEN`).
