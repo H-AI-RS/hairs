@@ -13,7 +13,7 @@ namespace Hairs.Tests;
 /// </summary>
 public sealed class AssuranceDocumentTests
 {
-    private const string Source = """
+    private static readonly string Source = """
 // SPDX-FileCopyrightText: 2026 HAIRS contributors
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -47,7 +47,7 @@ public sealed class Thing
         return value + 1;
     }
 }
-""";
+""".Replace("\r\n", "\n", StringComparison.Ordinal);
 
     [Fact(Timeout = 600000)]
     public void The_Units_Are_The_Annotated_Declarations()
