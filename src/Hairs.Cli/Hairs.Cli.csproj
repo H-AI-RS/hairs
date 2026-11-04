@@ -17,10 +17,12 @@
     <Description>Human AI Review System (HAIRS) CLI: code-review coverage, freshness checks, and declaration assurance.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>hairs.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\hairs.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
