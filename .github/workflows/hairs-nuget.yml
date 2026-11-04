@@ -26,7 +26,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: hairs-nuget-${{ github.ref }}
@@ -171,26 +170,11 @@ jobs:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           if (-not $env:NUGET_API_KEY) {
-            Write-Warning "NUGET_API_KEY secret is not set. Skipping push to NuGet.org."
-          } else {
-            Write-Host "Publishing to NuGet.org..."
-            dotnet nuget push "nupkg/*.nupkg" `
-              --source "https://api.nuget.org/v3/index.json" `
-              --api-key "$env:NUGET_API_KEY" `
-              --skip-duplicate
+            Write-Error "NUGET_API_KEY secret is not set. Cannot publish to NuGet.org."
+            exit 1
           }
-
-      - name: Push to GitHub Packages
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if (-not $env:GITHUB_TOKEN) {
-            Write-Warning "GITHUB_TOKEN is not available. Skipping push to GitHub Packages."
-          } else {
-            Write-Host "Publishing to GitHub Packages (owner: ${{ github.repository_owner }})..."
-            dotnet nuget push "nupkg/*.nupkg" `
-              --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" `
-              --api-key "$env:GITHUB_TOKEN" `
-              --skip-duplicate
-          }
+          Write-Host "Publishing to NuGet.org..."
+          dotnet nuget push "nupkg/*.nupkg" `
+            --source "https://api.nuget.org/v3/index.json" `
+            --api-key "$env:NUGET_API_KEY" `
+            --skip-duplicate

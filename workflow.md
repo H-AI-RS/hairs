@@ -186,4 +186,4 @@ The workflow is triggered manually on demand:
    - `preview_number`: defaults to `auto`, which automatically queries NuGet.org for the highest existing `0.1.0-preview.<N>` version and increments it to `N + 1` (e.g. if `preview.1` is on NuGet, it automatically resolves to `preview.2`). You can also enter an explicit number.
    - `version_override`: optional custom SemVer string (overrides `preview_number`).
    - `dry_run`: `true` to test building and packing without publishing.
-3. The workflow builds `Hairs.slnx`, executes all 375 tests, packs the NuGet packages, and publishes them to NuGet.org (using `NUGET_API_KEY`) and GitHub Packages (using `GITHUB_TOKEN`).
+3. The workflow builds `Hairs.slnx`, executes all 375 tests, packs the NuGet packages, and publishes them to NuGet.org (using `NUGET_API_KEY`).
